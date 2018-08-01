@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import QuartzCore
 
 class GameViewController: UIViewController {
     
@@ -15,12 +16,16 @@ class GameViewController: UIViewController {
     var targetValue : Int = 0
     var score : Int = 0
     var round : Int = 0
+    var time : Int = 0
+    var timer : Timer?
     
     // MARK: IBOutlets
     @IBOutlet weak var slider: UISlider!
     @IBOutlet weak var labelTarget: UILabel!
     @IBOutlet weak var labelScore: UILabel!
     @IBOutlet weak var labelRound: UILabel!
+    @IBOutlet weak var labelTimer: UILabel!
+    @IBOutlet weak var labelRecord: UILabel!
     
     // MARK: - Methods
     override func viewDidLoad() {
@@ -29,7 +34,6 @@ class GameViewController: UIViewController {
         setupSlider()
         
         resetGame()
-        updateLabels()
     }
 
     override func didReceiveMemoryWarning() {
@@ -76,7 +80,13 @@ class GameViewController: UIViewController {
     
     @IBAction func btnRestartPressed(_ sender: Any) {
         self.resetGame()
-        self.updateLabels()
+        
+        let transition = CATransition()
+        transition.type = kCATransitionFade
+        transition.duration = 1
+        transition.timingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseIn)
+        
+        self.view.layer.add(transition, forKey: nil) 
     }
     
     // MARK: Custom methods
@@ -91,12 +101,29 @@ class GameViewController: UIViewController {
         self.labelTarget.text = "\(self.targetValue)"
         self.labelScore.text = "\(self.score)"
         self.labelRound.text = "\(self.round)"
+        self.labelTimer.text = "\(self.time)"
     }
     
     func resetGame() {
+        var maxScore = UserDefaults.standard.integer(forKey: "maxScore")
+        if maxScore < self.score {
+            maxScore = self.score
+            UserDefaults.standard.set(maxScore, forKey: "maxScore")
+        }
+        self.labelRecord.text = "\(maxScore)"
+        
         self.score = 0
         self.round = 0
+        self.time = 60
+        
+        if self.timer != nil {
+            self.timer?.invalidate()
+        }
+        
+        self.timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(tick), userInfo: nil, repeats: true)
+        
         self.startNewRound()
+        self.updateLabels()
     }
     
     func setupSlider() {
@@ -114,6 +141,15 @@ class GameViewController: UIViewController {
         
         self.slider.setMinimumTrackImage(trackLeftResizable, for: .normal)
         self.slider.setMaximumTrackImage(trackRightResizable, for: .normal)
+    }
+    
+    @objc func tick() {
+        self.time -= 1
+        self.labelTimer.text = "\(self.time)"
+        
+        if self.time <= 0 {
+            self.resetGame()
+        }
     }
     
 }
